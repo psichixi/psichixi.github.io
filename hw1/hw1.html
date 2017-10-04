@@ -1,0 +1,41 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VS 101 Homework</title>
+
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans"/>
+  <link href="hw1.css" rel="stylesheet"/>
+
+  <style>
+    body
+    {
+      max-width: 960px; 
+    }
+  </style>
+ 
+</head>
+<body>
+  <h1>First VIS101 Homework</h1>
+
+  <div>
+    <h2>Quote of the day</h2>
+    <p id="p1"> "All successful men and women are big dreamers. They imagine what their future could be, ideal in every respect, and then they work every day toward their distant vision, that goal or purpose.” – Brian Tracy</p>
+  </div>
+
+<button onclick="changeText()">Change quote of the day</button>
+<script>
+  var changeText = function ()
+  {
+    var quotes = ["&#34All successful men and women are big dreamers. They imagine what their future could be, ideal in every respect, and then they work every day toward their distant vision, that goal or purpose.&#34 – Brian Tracy",
+    "&#34Genius is one percent inspiration and ninety-nine percent perspiration.&#34 - Thomas Edison",
+    "&#34You can observe a lot just by watching.&#34 - Yogi Berra",
+    "&#34A house divided against itself cannot stand.&#34 - Abraham Lincoln",
+    "&#34Be the chief but never the lord.&#34 - Lao Tzu"];
+    var random_value = Math.round(Math.random() * (quotes.length - 1));
+    document.getElementById("p1").innerHTML=quotes[random_value];
+  };
+</script>
+<button>Button for sorting</button>
+
+</body>
+</html>

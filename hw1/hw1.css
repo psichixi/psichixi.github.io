@@ -1,0 +1,42 @@
+h1 {
+    font-family: "Open Sans";
+    font-size: 24px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: 500;
+    line-height: 26.4px;
+  color: #1946ba;
+}
+h2 {
+    font-family: "Open Sans";
+    font-size: 18px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: 500;
+    line-height: 26.4px;
+}
+p {
+    font-family: "Open Sans";
+    font-size: 12px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: 500;
+    line-height: 26.4px;
+  border-left: 4px solid #ccc;
+  margin-left: 25px;
+  padding-left: 10px;
+}
+div {
+    border: 3px solid red;
+    padding: 0 10px;
+    border-color: #F5F5F5;
+    margin: 10px;
+}
+button {
+    background-color: #ec0b43; /* Green */
+    border: none;
+    color: white;
+    padding: 5px 7px;
+    text-align: center;
+    font-size: 12px;
+}
