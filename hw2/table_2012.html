@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+  <head>
+    <meta charset="UTF-8">
+    <title>VS 2 Homework</title>
+
+    <link href="table.css" rel="stylesheet"/>
+   
+  </head>
+  <body>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script>
+
+      d3.json("countries_2012.json", function(error, json_data){
+        var columns = ["name", "continent", "gdp", "life_expectancy", "population", "year"];
+
+        d3.select("body").append("p").append("slider")
+        d3.select("body").append("p").append("checkboxes")
+        d3.select("body").append("p").append('radiobuttons')
+
+        var inv_columns_obj =
+          columns.reduce(function(result, item, index, array) {
+            result[item] = index;
+            return result;
+          }, {})
+
+        //var inv_columns_obj = Object.keys(columns_obj)
+        //  .reduce((obj, key) => Object.assign({}, obj, { [columns_obj[key]]: key }), {});
+
+        var json_data = json_data.map(function(datum) {
+          return columns.reduce(function(result, item, index, array) {
+              result[item] = datum[item];
+              return result;
+            }, {})
+          });
+        json_subset = json_data
+
+        var table = d3.select("body").append("table"),
+          thead = table.append("thead")
+                       .attr("class", "thead");
+          tbody = table.append("tbody");
+
+        table.append("caption")
+          .html("World Countries Ranking");
+
+        thead.append("tr").selectAll("th")
+          .data(columns)
+        .enter()
+          .append("th")
+          .text(function(d) { return d; })
+          .on("click", function(header, i) {
+            tbody.selectAll("tr").sort(function(a, b) {
+              return d3.descending(a[header], b[header]);
+            });
+          });
+
+        function clearTable()
+        {
+          tbody.selectAll("tr.row").remove()
+        }
+
+        function fillTable()
+        {
+          var rows = tbody.selectAll("tr.row")
+            .data(json_subset)
+            .enter()
+            .append("tr").attr("class", "row");
+
+          var cells = rows.selectAll("td")
+            .data(function(row) {
+                return d3.range(Object.keys(row).length).map(function(column, i) {
+                    data = row[Object.keys(row)[i]];
+                    if (inv_columns_obj["population"] == i)
+                      return d3.format(",")(data);
+                    if (inv_columns_obj["life_expectancy"] == i)
+                      return d3.format(".1f")(data);
+                    if (inv_columns_obj["gdp"] == i)
+                      return d3.format(".2s")(data);
+                    return data;
+                });
+            })
+            .enter()
+            .append("td")
+            .text(function(d) { return d; })
+        }
+
+        fillTable()
+
+        continents = {}
+        for (var i = 0; i < json_subset.length; i++)
+        {
+          if (Object.keys(continents).indexOf(json_subset[i]["continent"]) < 0)
+            continents[json_subset[i]["continent"]] = true
+        }
+
+        function aggrByContinent(json_subset)
+        {
+          var nested_rows = d3.nest()
+              .key(function(d) { return d.continent; })
+              .rollup(function(leaves) { 
+                result = {"name": leaves[0].continent,
+                "continent": leaves[0].continent,
+                "gdp": d3.sum(leaves, function(d) {return d["gdp"];}),
+                "life_expectancy": d3.mean(leaves, function(d) {return d["life_expectancy"];}),
+                "population": d3.sum(leaves, function(d) {return d["population"];}),
+                "year": leaves[0].year};
+              return result; })
+              .entries(json_subset);
+
+            json_subset = nested_rows.map(function(row) {
+              return Object.values(row)[1]
+            });
+
+            return json_subset
+        }
+
+        function filterData(json_subset)
+        {
+          var year = d3.select("slider").select("input").node().value
+          console.log(year)
+          var all_false = Object.values(continents).every(
+              function (value, index, ar) { return !value; });
+
+          json_subset = []
+          for (var i = 0; i < json_data.length; i++)
+          {
+            if ((all_false || continents[json_data[i]["continent"]]) &&
+              json_data[i]["year"] == year)
+              json_subset.push(json_data[i])
+          }
+
+          d3.select("radiobuttons").selectAll("input")
+            .each(function(d,i){
+              var element = d3.select(this);
+              if (element.attr("id") == "By continent" && element.node().checked) 
+                json_subset = aggrByContinent(json_subset);
+            })
+
+          return json_subset
+        }
+
+        function onCheckboxClick(value, i) {
+          continents[value] = !continents[value]
+
+          json_subset = filterData(json_subset)
+          clearTable()
+          fillTable(json_subset)
+        }
+
+        function onSliderInput(value, i) {
+          //console.log(d3.select(this).node().value)
+
+          json_subset = filterData(json_subset)
+          clearTable()
+          fillTable(json_subset)
+        }
+
+        d3.select("slider").append("label").html("Time update: ")
+        d3.select("slider").selectAll("input")
+          .data([1])
+          .enter()
+          .append('label')
+          .text(function(d) { return "    " + 1995; })
+          .append("input")
+          .attr("type", "range")
+          //.attr("id", "range")
+          .on("input", onSliderInput)
+          .attr("name", "slider-time")
+          .attr("min", 1995)
+          .attr("max", 2012)
+          .attr("step", 1)
+          .attr("value", 1995)
+
+        d3.select("slider")
+          .append('label')
+          .text(function(d) { return 2012; })
+
+
+        d3.select("checkboxes").append("label").html("Filter by: ")
+        d3.select("checkboxes").selectAll("input")
+          .data(Object.keys(continents))
+          .enter()
+          .append('label')
+          .text(function(d) { return "    " + d; })
+          .append("input")
+          .attr("type", "checkbox")
+          .attr("id", "checkbox")
+          .on("click", onCheckboxClick)
+          .attr("name", "checkbox")
+          .attr("checked", true)
+
+        function onRadioClick(value, i) {
+          if (value == "None")
+          {
+            json_subset = filterData(json_subset)
+            clearTable()
+            fillTable(json_subset)
+          }
+          else
+          {
+            json_subset = aggrByContinent(json_subset);
+            clearTable()
+            fillTable(json_subset)
+          }
+        }
+
+        d3.select("radiobuttons").append("label").html("Aggregate by: ")
+          .selectAll("input")
+          .data(["None", "By continent"])
+          .enter()
+          .append("label")
+          .text(function(d) { return "    " + d; })
+          .append("input")
+          .attr("type", "radio")
+          .attr("name", "aggr_radio")
+          .attr("id", function(d) { return d; })
+          .attr("value", "low")
+          .on("click", onRadioClick)
+
+      });
+    </script> 
+  </body>
+</html>

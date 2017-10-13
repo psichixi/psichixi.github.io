@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+  <head>
+    <meta charset="UTF-8">
+    <title>VS 2 Homework</title>
+
+    <link href="barchart.css" rel="stylesheet"/>
+   
+  </head>
+  <body>
+
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script>
+
+      d3.json("countries_1995_2012.json", function(error, json_data){
+        var columns = ["name", "continent", "gdp", "life_expectancy", "population", "year"];
+
+        var body = d3.select("body")
+        body.append("h4").html("World Countries Ranking")
+
+        var settings = body.append("div")
+
+        settings.append("p").append("slider")
+        settings.append("p").append("checkboxes")
+        settings.append("p").append('aggregate_radio')
+        settings.append("p").append('encode_bars_radio')
+        settings.append("p").append('sort_radio')
+        body.append("p").append("svg")
+
+        var inv_columns_obj =
+          columns.reduce(function(result, item, index, array) {
+            result[item] = index;
+            return result;
+          }, {})
+
+        json_subset = json_data
+
+        var encode_bars_column_name = "population"
+
+        function clearBarcharts() {
+          d3.select("svg")
+            .selectAll(".barGroup")
+            .remove()
+        }
+
+        function drawBarcharts(json_subset) {
+
+          var row_height = 30
+          var bar_height = 20
+
+          var svg_width = 800
+          var svg_height = row_height * json_subset.length
+
+          var x0 = 200
+          var x0_offset = 10
+          var max_rect_width = svg_width - x0 - x0_offset
+
+          svg = d3.select("svg")
+
+          svg.attr("height", svg_height)
+            .attr("width", svg_width)
+
+          var column_id = inv_columns_obj[encode_bars_column_name]
+          var column_data = json_subset.map(function(row) {
+            return Object.values(row)[column_id]
+          })
+          var column_to_visualize = json_subset.map(function(row) {
+            return Object.values(row)
+          })
+          var max = Math.max.apply(null, column_data)
+
+          var bar_groups = svg.selectAll(".barGroup")
+            .data(column_to_visualize);
+
+          var bar_groups_enter = bar_groups.enter()
+            .append("g")
+            .classed("barGroup", true);
+
+          bar_groups.exit().remove();
+
+          bar_groups_enter.append("text");
+
+          bar_groups_enter.append("rect")
+            .attr("width", "0")
+            .attr("height", bar_height)
+            .style("fill",function() {
+              return "hsl(" + Math.random() * 360 + ",100%,50%)";
+              })
+            .attr('stroke', '#2378ae')
+
+          bar_groups = bar_groups.merge(bar_groups_enter);
+
+          bar_groups.attr("transform", function (d, i) {
+            return "translate(0," + i * row_height + ")";
+          });
+
+          function getRectWidth(row) {
+            return row[column_id] * max_rect_width / max
+          }
+
+          bar_groups.select("text")
+                  .text(function(row) { return row[0] })
+                  .attr("x", x0)
+                  .attr("text-anchor", "end")
+                  .attr("dy", row_height / 2)
+
+          bar_groups.select("rect")
+                  .transition().duration(1500)
+                  .attr("width", function (d) { return getRectWidth(d); })
+                  .attr("x", x0 + x0_offset)
+                  .attr("opacity", 1);
+        }
+
+        continents = {}
+        for (var i = 0; i < json_subset.length; i++) {
+          if (Object.keys(continents).indexOf(json_subset[i]["continent"]) < 0)
+            continents[json_subset[i]["continent"]] = true
+        }
+
+        function aggrByContinent(json_subset) {
+          var nested_rows = d3.nest()
+              .key(function(d) { return d.continent; })
+              .rollup(function(leaves) { 
+                result = {"name": leaves[0].continent,
+                "continent": leaves[0].continent,
+                "gdp": d3.sum(leaves, function(d) {return d["gdp"];}),
+                "life_expectancy": d3.mean(leaves, function(d) {return d["life_expectancy"];}),
+                "population": d3.sum(leaves, function(d) {return d["population"];}),
+                "year": leaves[0].year};
+              return result; })
+              .entries(json_subset);
+
+            json_subset = nested_rows.map(function(row) {
+              return Object.values(row)[1]
+            });
+
+            return json_subset
+        }
+
+        function geRowByYear(data, year) {
+          result = {"name": data["name"],
+            "continent": data["continent"]
+            }
+
+            data["years"].forEach(function(d, i) {
+              if (d["year"] == year) {
+                result["gdp"] = d["gdp"]
+                result["life_expectancy"] = d["life_expectancy"]
+                result["population"] = d["population"]
+                result["year"] = d["year"]
+              }
+            })
+            return result
+        }
+        function filterData(json_subset) {
+          var year = d3.select("slider").select("input").node().value
+          var all_false = Object.values(continents).every(
+              function (value, index, ar) { return !value; });
+
+          json_subset = []
+          for (var i = 0; i < json_data.length; i++) {
+            if ((all_false || continents[json_data[i]["continent"]]))
+              json_subset.push(geRowByYear(json_data[i], year))
+          }
+
+          d3.select("aggregate_radio").selectAll("input")
+            .each(function(d,i) {
+              var element = d3.select(this);
+              if (element.attr("id") == "By continent" && element.node().checked) 
+                json_subset = aggrByContinent(json_subset);
+            })
+
+          json_subset.sort(function(a, b) {
+            if (a[sort_header] < b[sort_header])
+              return 1
+            if (a[sort_header] > b[sort_header])
+              return -1
+            return 0
+          })
+
+          return json_subset
+        }
+
+        function onCheckboxClick(value) {
+          continents[value] = !continents[value]
+
+          json_subset = filterData(json_subset)
+          clearBarcharts()
+          drawBarcharts(json_subset)
+        }
+
+        function onSliderInput() {
+          json_subset = filterData(json_subset)
+          drawBarcharts(json_subset)
+        }
+
+        d3.select("slider").append("label").html("Time update: ")
+        d3.select("slider").selectAll("input")
+          .data([1])
+          .enter()
+          .append('label')
+          .text(function(d) { return "    " + 1995; })
+          .append("input")
+          .attr("type", "range")
+          .on("input", onSliderInput)
+          .attr("name", "slider-time")
+          .attr("min", 1995)
+          .attr("max", 2012)
+          .attr("step", 1)
+          .attr("value", 1995)
+
+        d3.select("slider")
+          .append('label')
+          .text(function(d) { return 2012; })
+
+
+        var checkboxes = d3.select("checkboxes")
+        checkboxes.append("label").html("Filter by: ")
+
+        var checkbox = checkboxes.selectAll("input")
+          .data(Object.keys(continents))
+          .enter()
+          .append("element_group")
+
+        checkbox.append("input")
+          .attr("type", "checkbox")
+          .on("click", onCheckboxClick)
+          .attr("name", "checkbox")
+          .attr("checked", true)
+
+        checkbox.append('label')
+          .text(function(d) { return "    " + d; })
+        
+        function onAggregateRadioClick(value) {
+          if (value == "None") {
+            json_subset = filterData(json_subset)
+            clearBarcharts()
+            drawBarcharts(json_subset)
+          }
+          else {
+            json_subset = aggrByContinent(json_subset);
+            clearBarcharts()
+            drawBarcharts(json_subset)
+          }
+        }
+
+        function onEncodeBarsRadioClick(value) {
+          encode_bars_column_name = value
+          drawBarcharts(json_subset)
+        }
+
+        var sort_header = null
+        function onSortRadioClick(value) {
+          sort_header = value
+          json_subset = filterData(json_subset)
+          clearBarcharts()
+          drawBarcharts(json_subset)
+        }
+
+
+        var aggr_radios = d3.select("aggregate_radio")
+        aggr_radios.append("label").html("Aggregate by: ")
+
+        var aggr_radio = aggr_radios.selectAll("input")
+          .data(["None", "By continent"])
+          .enter()
+          .append("element_group")
+
+        aggr_radio.append("input")
+          .attr("type", "radio")
+          .attr("name", "aggr_radio")
+          .attr("id", function(d) { return d; })
+          .on("click", onAggregateRadioClick)
+
+        aggr_radio.append("label")
+          .text(function(d) { return "    " + d; })
+
+
+        var encode_radios = d3.select("encode_bars_radio")
+        encode_radios.append("label").html("Encode bars by: ")
+
+        var encode_radio = encode_radios.selectAll("input")
+          .data(["population", "gdp"])
+          .enter()
+          .append("element_group")
+
+        encode_radio.append("input")
+          .attr("type", "radio")
+          .attr("name", "encode_bars_radio")
+          .attr("id", function(d) { return d; })
+          .on("click", onEncodeBarsRadioClick)
+        d3.select("encode_bars_radio").select("input")
+          .attr("checked", "checked")
+
+        encode_radio.append("label")
+          .text(function(d) { return "    " + d; })
+
+
+        var sort_radios = d3.select("sort_radio")
+        sort_radios.append("label").html("Sort bars by: ")
+
+        var sort_radio = sort_radios.selectAll("input")
+          .data(["name", "population", "gdp"])
+          .enter()
+          .append("element_group")
+
+        sort_radio.append("input")
+          .attr("type", "radio")
+          .attr("name", "sort_radio")
+          .attr("id", function(d) { return d; })
+          .on("click", onSortRadioClick)
+
+        sort_radio.append("label")
+          .text(function(d) { return "    " + d; })
+
+        json_subset = filterData(json_subset)
+        drawBarcharts(json_subset)
+
+      });
+    </script> 
+  </body>
+</html>
