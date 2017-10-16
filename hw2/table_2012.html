@@ -44,15 +44,54 @@
         table.append("caption")
           .html("World Countries Ranking");
 
+        var sorted_header = null
+        var sorted_asc = null
         thead.append("tr").selectAll("th")
           .data(columns)
         .enter()
           .append("th")
           .text(function(d) { return d; })
           .on("click", function(header, i) {
+            if (sorted_header == header && !sorted_asc)
+            {
+              sorted_header = header
+              sorted_asc = true
+
+              if (sorted_header == "continent")
+              {
+                tbody.selectAll("tr").sort(function(a, b) {
+                  if (a[header] < b[header])
+                    return -1
+                  if (a[header] > b[header])
+                    return 1
+                  return d3.ascending(a["name"], b["name"])
+                })
+                return
+              }
+              tbody.selectAll("tr").sort(function(a, b) {
+                return d3.ascending(a[header], b[header]);
+              })
+
+              return
+            }
+
+            sorted_header = header
+            sorted_asc = false
+
+            if (sorted_header == "continent")
+            {
+              tbody.selectAll("tr").sort(function(a, b) {
+                if (a[header] > b[header])
+                  return -1
+                 if (a[header] < b[header])
+                  return 1
+                return d3.descending(a["name"], b["name"])
+              })
+              return
+            }
             tbody.selectAll("tr").sort(function(a, b) {
               return d3.descending(a[header], b[header]);
-            });
+            })
           });
 
         function clearTable()
