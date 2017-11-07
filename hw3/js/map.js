@@ -5,7 +5,7 @@ class Map {
      */
     constructor() {
         this.projection = d3.geoConicConformal().scale(150).translate([400, 350]);
-
+        this.path = d3.geoPath().projection(this.projection);
     }
 
     /**
@@ -21,6 +21,14 @@ class Map {
         // the colors and markers for hosts/teams/winners, you can use
         // d3 selection and .classed to set these classes on and off here.
 
+        d3.select("#map").selectAll(".team")
+            .remove()
+        d3.select("#map").selectAll(".host")
+            .remove()
+        d3.select("#points").selectAll(".gold")
+            .remove()
+        d3.select("#points").selectAll(".silver")
+            .remove()
     }
 
     /**
@@ -49,6 +57,45 @@ class Map {
 
 
         // Add a marker for gold/silver medalists
+        var teams_features = this.world.features.filter(function(row) {
+            return worldcupData.teams_iso.includes(row["id"]);
+        })
+
+        d3.select("#map").selectAll(".team")
+            .data(teams_features)
+            .enter()
+            .append("path")
+            .attr("class", "team")
+            .attr("d", this.path)
+
+        var host_features = this.world.features.filter(function(row) {
+            return row["id"] == worldcupData.host_country_code
+        })
+
+        d3.select("#map").selectAll(".host")
+            .data(host_features)
+            .enter()
+            .append("path")
+            .attr("class", "host")
+            .attr("d", this.path)
+
+        var projection = this.projection
+
+        d3.select("#points").selectAll(".gold")
+            .data([worldcupData.win_pos]).enter()
+            .append("circle")
+            .attr("class", "gold")
+            .attr("cx", function (d) { return projection(d)[0]; })
+            .attr("cy", function (d) { return projection(d)[1]; })
+            .attr("r", "8px")
+
+        d3.select("#points").selectAll(".silver")
+            .data([worldcupData.ru_pos]).enter()
+            .append("circle")
+            .attr("class", "silver")
+            .attr("cx", function (d) { return projection(d)[0]; })
+            .attr("cy", function (d) { return projection(d)[1]; })
+            .attr("r", "8px")
     }
 
     /**
@@ -71,7 +118,30 @@ class Map {
         // Make sure and give your paths the appropriate class (see the .css selectors at
         // the top of the provided html file)
 
+        var transition = d3.transition();
+        var projection = this.projection
+
+
+        this.world = topojson.feature(world, world.objects.countries);
+        var countries_features = this.world.features
+        
+        d3.select("#map").selectAll(".countries")
+            .data(countries_features)
+            .enter()
+            .append("path")
+            .attr("class", "countries")
+            .attr("d", this.path)
+
+        const graticule = d3.geoGraticule()
+            .step([10, 10]);
+
+        d3.select("#map").selectAll(".grat")
+            .data([graticule()])
+            .enter()
+            .append('path')
+            .attr("class", "grat")
+            .attr('d', this.path)
+            .attr("fill", "none")
+            .exit().remove();
     }
-
-
 }

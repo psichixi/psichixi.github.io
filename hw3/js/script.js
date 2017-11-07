@@ -47,4 +47,6 @@ function chooseData() {
     // Changed the selected data when a user selects a different
     // menu item from the drop down.
 
+    var selectedDimension = d3.select("#dataset").node().value
+    barChart.chooseData(selectedDimension)
 }
