@@ -119,6 +119,7 @@ class Tree {
             if (!treeData[i].Opponent) {
                 var teamElement = {}
                 teamElement.name = treeData[i].Team
+                teamElement.opponentName = treeData[i].Opponent
                 teamElement.id = treeData[i].id + "_" + treeData[i].Team
                 teamElement.parentId = ""
                 teamElement.win = true
@@ -129,6 +130,7 @@ class Tree {
 
             var teamElement = {}
             teamElement.name = treeData[i].Team
+            teamElement.opponentName = treeData[i].Opponent
             teamElement.id = treeData[i].id + "_" + treeData[i].Team
             teamElement.parentId = (treeData[i].parentId + "_" + winner)
             teamElement.win = (winner == teamElement.name)
@@ -136,6 +138,7 @@ class Tree {
 
             var opponentElement = {}
             opponentElement.name = treeData[i].Opponent
+            opponentElement.opponentName = treeData[i].Team
             opponentElement.id = treeData[i].id + "_" + treeData[i].Opponent
             opponentElement.parentId = (treeData[i].parentId + "_" + winner)
             opponentElement.win = (winner == opponentElement.name)
@@ -222,6 +225,9 @@ class Tree {
                 })
                 .attr("text-anchor", function(d) {
                     return d.children || d._children ? "end" : "start";
+                })
+                .attr("id", function(d) {
+                    return d.data.name
                 })
                 .text(function(d) { return d.data.name; });
 
@@ -319,8 +325,48 @@ class Tree {
     updateTree(row) {
         // ******* TODO: PART VII *******
         this.clearTree()
-        d3.selectAll("#" + row)
-            .attr("class", "selected")
+
+        if (row.value.type == "aggregate") {
+            d3.selectAll("path").filter("#" + row.key)
+                .attr("class", "selected")
+
+            d3.selectAll("text").filter("#" + row.key)
+                .attr("class", "selectedLabel")
+            return;
+        }
+
+        var team = row.key.slice(1)
+        var opponent = row.value.Opponent
+
+        d3.selectAll("text").filter("#" + team).each(function(d) {
+            var node = d3.select(this)
+            if (node.datum().data.opponentName == opponent) {
+                node.attr("class", "selectedLabel")
+                return
+            }
+        })
+        
+        d3.selectAll("text").filter("#" + opponent).each(function(d) {
+            var node = d3.select(this)
+            if (node.datum().data.opponentName == team) {
+                node.attr("class", "selectedLabel")
+                return
+            }
+        })
+
+        d3.selectAll("path").filter("#" + team).each(function(d) {
+            var node = d3.select(this)
+            if (node.datum().data.opponentName == opponent) {
+                node.attr("class", "selected")
+            }
+        })
+
+        d3.selectAll("path").filter("#" + opponent).each(function(d) {
+            var node = d3.select(this)
+            if (node.datum().data.opponentName == team) {
+                node.attr("class", "selected")
+            }
+        })
     }
 
     /**
@@ -332,5 +378,7 @@ class Tree {
         // You only need two lines of code for this! No loops!
         d3.selectAll("path.selected")
             .attr("class", "link") 
+        d3.selectAll("text.selectedLabel")
+            .attr("class", "")
     }
 }

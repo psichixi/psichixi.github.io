@@ -140,9 +140,11 @@ class Table {
                     tableClass.sortedHeader = header
                     tableClass.sortedAsc = true
 
-                    d3.selectAll("tr.aggregate").sort(function(a, b) {
+                    tableClass.tableElements.sort(function(a, b) {
                         return d3.ascending(tableClass.getValueForSort(a, header), tableClass.getValueForSort(b, header));
                     })
+
+                    tableClass.updateTable()
 
                     return
                 }
@@ -150,9 +152,11 @@ class Table {
                 tableClass.sortedHeader = header
                 tableClass.sortedAsc = false
 
-                d3.selectAll("tr.aggregate").sort(function(a, b) {
+                tableClass.tableElements.sort(function(a, b) {
                     return d3.descending(tableClass.getValueForSort(a, header), tableClass.getValueForSort(b, header));
                 })
+
+                tableClass.updateTable()
             })
 
         var tree = this.tree
@@ -204,9 +208,6 @@ class Table {
         fillTable(this.tableElements)
         function fillTable(data)
         {
-            var t = d3.transition()
-                .duration(750)
-
             table.selectAll("tr").remove()
             var rows = table.selectAll("tr")
                 .data(data)
@@ -255,9 +256,6 @@ class Table {
         drawTableGoalsData(this.goalScaleMargin, this.goalScaleWidth, this.goalScaleHeight, this.maxGoals)
 
         function drawTableGoalsData(goalScaleMargin, goalScaleWidth, goalScaleHeight, maxGoals) {
-            var t = d3.transition()
-                .duration(750)
-
             var goalsSvg = d3.selectAll("#Goals")
                 .append("svg")
                 .attr("id", 1)
@@ -394,19 +392,6 @@ class Table {
                     return getBarLength(d.value) - 5 - width / 2; })
                 .attr("y", function(d) { return 16 })
         }
-
-        var tableClass = this
-        if (this.sortedAsc && this.sortedHeader)
-        {
-            d3.selectAll("tr.aggregate").sort(function(a, b) {
-                return d3.ascending(tableClass.getValueForSort(a, tableClass.sortedHeader), tableClass.getValueForSort(b, tableClass.sortedHeader));
-            })
-        }
-        else if (!this.sortedAsc && this.sortedHeader) {
-            d3.selectAll("tr.aggregate").sort(function(a, b) {
-                return d3.descending(tableClass.getValueForSort(a, tableClass.sortedHeader), tableClass.getValueForSort(b, tableClass.sortedHeader));
-            })
-        }
     };
 
 
@@ -419,7 +404,7 @@ class Table {
             if (!d) {
                 return
             }
-            tree.updateTree(d.key)
+            tree.updateTree(d)
         };
         function handleMouseClick(d, i, el) {
             if (!d) {
@@ -427,7 +412,7 @@ class Table {
             }
             var idx = data.findIndex(function(el, i, array) { return el.key == d.key })
 
-            if (data[idx + 1].value.type == "game") {
+            if (data[idx + 1].value.type == "game" && data[idx].value.type != "game") {
                 var j = idx + 1
                 while (data[j].value.type == "game" && j < data.length ) {
                     ++j
