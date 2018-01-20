@@ -22,20 +22,134 @@
     <p id="p1"> "All successful men and women are big dreamers. They imagine what their future could be, ideal in every respect, and then they work every day toward their distant vision, that goal or purpose.” – Brian Tracy</p>
   </div>
 
-<button onclick="changeText()">Change quote of the day</button>
+  <button onclick="changeText()">Change quote of the day</button>
+  <button onclick="sortByAuthor()">Button for sorting</button>
+
+  <div id="authors_select">
+  </div>
+
 <script>
+  var quotes = [ {quoteAuthor: "Thomas Edison", quoteText: "Genius is one percent inspiration and ninety-nine percent perspiration."},
+  {quoteAuthor: "Yogi Berra", quoteText: "You can observe a lot just by watching."},
+  {quoteAuthor: "Abraham Lincoln", quoteText: "A house divided against itself cannot stand."},
+  {quoteAuthor: "Johann Wolfgang von Goethe", quoteText: "Difficulties increase the nearer we get to the goal."},
+  {quoteAuthor: "Byron Pulsifer", quoteText: "Fate is in your hands and no one elses"},
+  {quoteAuthor: "Lao Tzu", quoteText: "Be the chief but never the lord."}]
+
+  let url = 'https://raw.githubusercontent.com/4skinSkywalker/Database-Quotes-JSON/master/quotes.json';
+
+  fetch(url)
+  .then(res => res.json())
+  .then((out) => {
+    quotes = out
+    setUniqueAuthors()
+    setRadiosList()
+  })
+  .catch(err => { throw err });
+
+  var radio_div = document.getElementById("authors_select");
+
+  var selected_author = ""
+  var onRadioClick = function (a, b)
+  {
+    var radios = radio_div.children;
+
+    for (var i=0, len=radios.length; i<len; i++) {
+        if ( radios[i].checked ) {
+            selected_author=radios[i].id
+            break;
+        }
+    }
+    if (selected_author == "Any author") {
+      selected_author = ""
+    }
+    changeText()
+  }
+
+  function createRadio(author)
+  {
+    var radio = document.createElement("input");
+    radio.setAttribute("type", "radio");
+    radio.setAttribute("id", author);
+    radio.setAttribute("name", "choose_author");
+    radio.setAttribute("onchange", "onRadioClick()")
+
+    label = document.createElement("label");
+    label.for = "text";
+    label.innerHTML=author + "<br>";
+    radio_div.appendChild(radio);
+    radio_div.appendChild(label)
+  }
+
+  createRadio("Any author")
+
+  var unique_authors = []
+  function onlyUnique(value, index, self) { 
+    return self.indexOf(value) === index;
+  }
+
+  var setUniqueAuthors = function () {
+    for (var i = 0; i < quotes.length; i++) {
+      if (unique_authors.indexOf(quotes[i].quoteAuthor) < 0) {
+        unique_authors.push(quotes[i].quoteAuthor)
+      }
+    }
+  }
+  setUniqueAuthors()
+
+  var setRadiosList = function () {
+    for (var i = 0; i < unique_authors.length; i++) {
+      createRadio(unique_authors[i])
+    }
+  }
+
+  var setRandomQuote = function (quotes_subset)
+  {
+    if (quotes_subset.length == 0) {
+      return
+    }
+    var random_value = Math.round(Math.random() * (quotes_subset.length - 1));
+    document.getElementById("p1").innerHTML = quotes_subset[random_value].quoteText + " - " + quotes_subset[random_value].quoteAuthor;
+  };
+
   var changeText = function ()
   {
-    var quotes = ["&#34All successful men and women are big dreamers. They imagine what their future could be, ideal in every respect, and then they work every day toward their distant vision, that goal or purpose.&#34 – Brian Tracy",
-    "&#34Genius is one percent inspiration and ninety-nine percent perspiration.&#34 - Thomas Edison",
-    "&#34You can observe a lot just by watching.&#34 - Yogi Berra",
-    "&#34A house divided against itself cannot stand.&#34 - Abraham Lincoln",
-    "&#34Be the chief but never the lord.&#34 - Lao Tzu"];
-    var random_value = Math.round(Math.random() * (quotes.length - 1));
-    document.getElementById("p1").innerHTML=quotes[random_value];
+    if (selected_author == "") {
+      setRandomQuote(quotes)
+      return;
+    }
+
+    var filtered_quotes = quotes.filter(function(data) {
+      return data.quoteAuthor == selected_author
+    })
+
+    if (filtered_quotes.length == 0) {
+      setRandomQuote(quotes)
+      return
+    }
+    setRandomQuote(filtered_quotes)
   };
+
+  var sortQuotes = function (field)
+  {
+    quotes.sort(function (a, b) {
+      if (a[field] > b[field]) {
+        return 1;
+      }
+      if (a[field] < b[field]) {
+        return -1;
+      }
+      return 0;
+    });
+    console.log("Quotes sorted by author:")
+    for (var i = 0; i < quotes.length; i++)
+      console.log(quotes[i])
+  }
+  var sortByAuthor = function()
+  {
+    sortQuotes("quoteAuthor")
+  }
 </script>
-<button>Button for sorting</button>
 
 </body>
 </html>
